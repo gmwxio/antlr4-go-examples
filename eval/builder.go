@@ -8,6 +8,8 @@ import (
 
 	"reflect"
 
+	"strings"
+
 	antlr "github.com/wxio/antlr4-go"
 	"github.com/wxio/antlr4-go-examples/ctree"
 	"github.com/wxio/antlr4-go-examples/eval/parser"
@@ -21,9 +23,7 @@ type MyToken struct {
 
 func (t *MyToken) GetTokenType() int { return t.TType }
 
-type ENode struct {
-	MyToken
-}
+type ENode struct{ MyToken }
 type BinaryNode struct {
 	MyToken
 	Operator string
@@ -52,6 +52,36 @@ type StringAtom struct {
 	MyToken
 	Val string
 }
+
+type RangeRef struct{ MyToken }
+type IntersectRef struct{ MyToken }
+type FuncNode struct {
+	MyToken
+	Name string
+}
+
+func (f *FuncNode) GetName() string {
+	return f.Name
+}
+
+type ArgNode struct {
+	MyToken
+}
+
+type BlockOrRef struct{ MyToken }
+type A1Ref struct {
+	MyToken
+	Col    string
+	Row    string
+	ColAbs bool
+	RowAbs bool
+}
+type NamedRangeRef struct {
+	MyToken
+	Name string
+}
+type HRangeRef struct{ MyToken }
+type EHRef struct{ MyToken }
 
 func (e *BinaryNode) Eval(left, right Atom) Atom {
 
@@ -107,9 +137,55 @@ func (e *UnaryNode) Eval(arg Atom) Atom {
 	panic("")
 }
 
-// func (e *UnaryExpr) String() string        { return fmt.Sprintf("%s", e.Operator) }
-// func (e *FunctionCallExpr) String() string { return "FUNC " + e.Name }
-// func (e *BlockOrRefExpr) String() string   { return "BLOCKORUNION" }
+func (e *FuncNode) EvalLazy(strictArgs []Atom, lazyArgs []ctree.Tree) Atom {
+	// IF
+	if strings.ToLower(e.Name) == "if" {
+		var choose bool
+		test := strictArgs[0]
+		switch test := test.(type) {
+		case *BoolAtom:
+			choose = test.Val
+		case *IntegerAtom:
+			choose = test.Val != 0
+		case *FloatAtom:
+			choose = test.Val != 0
+		case *StringAtom:
+			return &ErrorAtom{Text: "#Value!"}
+		case *ErrorAtom:
+			return test
+		}
+		var arg ctree.Tree
+		if choose {
+			arg = lazyArgs[0]
+		} else {
+			if len(lazyArgs) == 1 {
+				return &BoolAtom{Val: false}
+			}
+			arg = lazyArgs[1]
+		}
+		got, err := WalkTreeFromStartExpr(arg)
+		if err != nil {
+			panic("")
+		}
+		return got
+	} else {
+		panic("")
+	}
+}
+
+func (e *FuncNode) EvalStrict(args []Atom) Atom {
+	// TODO move to map
+	if strings.ToLower(e.Name) == "sum" {
+		var acc Atom = &IntegerAtom{}
+		for _, a := range args {
+			acc, a = convertTypes(acc, a, MathPrecedences)
+			acc = acc.Add(a)
+		}
+		return acc
+	}
+	return nil
+}
+
 func (e *ENode) String() string      { return "=" }
 func (e *BinaryNode) String() string { return fmt.Sprintf("%s", e.Operator) }
 func (e *UnaryNode) String() string  { return fmt.Sprintf("%s", e.Operator) }
@@ -120,10 +196,26 @@ func (e *FloatAtom) String() string   { return fmt.Sprintf("%f", e.Val) }
 func (e *StringAtom) String() string  { return e.Val }
 func (e *BoolAtom) String() string    { return fmt.Sprintf("%v", e.Val) }
 
-// func (e *RangeRef) String() string    { return "RANGE" }
-// func (e *IntersectRef) String() string { return "INTERSECT" }
-// func (e *EnhancedRef) String() string  { return "EH" }
-// func (e *HRangeRef) String() string    { return "HRANGE" }
+func (a *RangeRef) String() string      { return "RANGE" }
+func (a *IntersectRef) String() string  { return "INTERSECT" }
+func (a *FuncNode) String() string      { return "FUNC " + a.Name }
+func (a *ArgNode) String() string       { return "ARG" }
+func (a *BlockOrRef) String() string    { return "BLOCKORUNION" }
+func (a *HRangeRef) String() string     { return "HRANGE" }
+func (a *EHRef) String() string         { return "EH" }
+func (a *NamedRangeRef) String() string { return a.Name }
+func (a *A1Ref) String() string {
+	if a.ColAbs && a.RowAbs {
+		return "$" + a.Col + "$" + a.Row
+	}
+	if a.ColAbs && !a.RowAbs {
+		return "$" + a.Col + a.Row
+	}
+	if !a.ColAbs && a.RowAbs {
+		return a.Col + "$" + a.Row
+	}
+	return a.Col + a.Row
+}
 
 func (a *ErrorAtom) Value() interface{}   { return a.Text }
 func (a *FloatAtom) Value() interface{}   { return a.Val }
@@ -214,209 +306,217 @@ var (
 type ExprBuildListener struct {
 	*parser.BaseExprParserListener
 	Builder ctree.WalkableBuilder
+	warning string
 	err     string
 	debug   bool
 }
 
-// EnterStart is called when production start is entered.
-func (s *ExprBuildListener) EnterStart(ctx *parser.StartContext) {
-}
+// EnterEveryRule is called when any rule is entered.
+func (s *ExprBuildListener) EnterEveryRule(ctx antlr.ParserRuleContext) {
+	switch ctx := ctx.(type) {
+	case *parser.StartContext:
+	case *parser.CellContext:
+		r := &ENode{MyToken: MyToken{Token: ctx.EQ().GetSymbol(), TType: parser.ExprParserROOT}}
+		s.Builder = ctree.NewWalkableBuild("TREE", r)
+	case *parser.StartexprContext:
+		r := &ENode{MyToken: MyToken{Token: ctx.EOF().GetSymbol(), TType: parser.ExprParserROOT}}
+		s.Builder = ctree.NewWalkableBuild("TREE", r)
+	// Expressions
+	case *parser.InfixContext:
+		n := &BinaryNode{MyToken: MyToken{Token: ctx.GetT(), TType: parser.ExprParserBINARYEXPR}, Operator: ctx.GetT().GetText()}
+		s.Builder.Add(n)
+		s.Builder.Down()
+	case *parser.ReferenceContext:
+	case *parser.PrefixContext:
+		n := &UnaryNode{MyToken: MyToken{Token: ctx.GetPre(), TType: parser.ExprParserUNARYEXPR}, Operator: ctx.GetPre().GetText()}
+		s.Builder.Add(n)
+		s.Builder.Down()
+	case *parser.PostfixContext:
+		n := &UnaryNode{MyToken: MyToken{Token: ctx.GetPost(), TType: parser.ExprParserUNARYEXPR}, Operator: ctx.GetPost().GetText()}
+		s.Builder.Add(n)
+		s.Builder.Down()
+	// Atoms
+	case *parser.ErrorContext:
+	case *parser.IntegerContext:
+		v, err := strconv.Atoi(ctx.GetA().GetText())
+		if err != nil {
+			panic("")
+		}
+		n := &IntegerAtom{MyToken: MyToken{Token: ctx.GetA(), TType: parser.ExprParserINTEGERATOM}, Val: v}
+		s.Builder.Add(n)
+	case *parser.FloatContext:
+		var v float64
+		_, err := fmt.Sscanf(ctx.GetA().GetText(), "%f", &v)
+		if err != nil {
+			panic("")
+		}
+		n := &FloatAtom{MyToken: MyToken{Token: ctx.GetA(), TType: parser.ExprParserFLOATATOM}, Val: v}
+		s.Builder.Add(n)
+	case *parser.StringContext:
+		n := &StringAtom{MyToken: MyToken{Token: ctx.GetA(), TType: parser.ExprParserSTRINGATOM}, Val: ctx.GetA().GetText()}
+		s.Builder.Add(n)
+	case *parser.ErrorTypeContext:
+		e := &ErrorAtom{MyToken: MyToken{Token: ctx.GetA(), TType: parser.ExprParserERRORATOM}}
+		if ctx.GetB() != nil {
+			e.Text = ctx.GetA().GetText() + ctx.GetB().GetText() + ctx.GetC().GetText()
+		}
+		e.Text = ctx.GetA().GetText() + ctx.GetC().GetText()
+		s.Builder.Add(e)
+	case *parser.TrueContext:
+		n := &BoolAtom{MyToken: MyToken{Token: ctx.GetA(), TType: parser.ExprParserBOOLATOM}, Val: true}
+		s.Builder.Add(n)
+	case *parser.FalseContext:
+		n := &BoolAtom{MyToken: MyToken{Token: ctx.GetA(), TType: parser.ExprParserBOOLATOM}, Val: false}
+		s.Builder.Add(n)
+	// REFS
+	case *parser.IntersectContext:
+		n := &IntersectRef{
+			MyToken: MyToken{Token: ctx.WS(0).GetSymbol(), TType: parser.ExprParserINTERSECTREF}}
+		s.Builder.Add(n)
+		s.Builder.Down()
+	case *parser.RangeContext:
+		n := &RangeRef{
+			MyToken: MyToken{Token: ctx.COLON().GetSymbol(), TType: parser.ExprParserRANGEREF}}
+		s.Builder.Add(n)
+		s.Builder.Down()
+		//	case *parser.A1RefContext:
+	case *parser.BlockOrRefContext:
+		n := &BlockOrRef{MyToken: MyToken{Token: ctx.LP().GetSymbol(), TType: parser.ExprParserBLOCKORREFEXPR}}
+		s.Builder.Add(n)
+		s.Builder.Down()
+	case *parser.FunctionCallContext:
+		name := ctx.GetName().GetText()
+		n := &FuncNode{MyToken: MyToken{
+			Token: ctx.LP().GetSymbol(), TType: parser.ExprParserFUNCEXPR,
+		},
+			Name: name,
+		}
+		n.SetText("FUNCEXPR")
+		s.Builder.Add(n)
+		s.Builder.Down()
+	case *parser.ArgContext:
+		// n := &ArgNode{MyToken: MyToken{
+		// 	Token: ctx.GetE().GetStart(), TType: parser.ExprParserARG,
+		// }}
+		// s.Builder.Add(n)
+		// s.Builder.Down()
+	case *parser.NamedRangeContext:
+		name := ctx.GetFirst().GetText()
+		for _, r := range ctx.GetRest() {
+			name = name + r.GetText()
+		}
+		n := &NamedRangeRef{MyToken: MyToken{
+			Token: ctx.GetFirst(), TType: parser.ExprParserNAMEDREF,
+		},
+			Name: name,
+		}
+		s.Builder.Add(n)
+	case *parser.NameOrA1Context:
+		n := &A1Ref{MyToken: MyToken{
+			Token: ctx.CHAR().GetSymbol(), TType: parser.ExprParserA1REF,
+		},
+			Col: ctx.CHAR().GetSymbol().GetText(),
+			Row: ctx.INT().GetSymbol().GetText(),
+		}
+		s.Builder.Add(n)
+	case *parser.A1ColumnAbsContext:
+		n := &A1Ref{MyToken: MyToken{
+			Token: ctx.CHAR().GetSymbol(), TType: parser.ExprParserA1REF,
+		},
+			Col:    ctx.CHAR().GetSymbol().GetText(),
+			Row:    ctx.INT().GetSymbol().GetText(),
+			ColAbs: true,
+		}
+		s.Builder.Add(n)
+	case *parser.A1RowAbsContext:
+		n := &A1Ref{MyToken: MyToken{
+			Token: ctx.CHAR().GetSymbol(), TType: parser.ExprParserA1REF,
+		},
+			Col:    ctx.CHAR().GetSymbol().GetText(),
+			Row:    ctx.INT().GetSymbol().GetText(),
+			RowAbs: true,
+		}
+		s.Builder.Add(n)
+	case *parser.A1AbsContext:
+		n := &A1Ref{MyToken: MyToken{
+			Token: ctx.CHAR().GetSymbol(), TType: parser.ExprParserA1REF,
+		},
+			Col:    ctx.CHAR().GetSymbol().GetText(),
+			Row:    ctx.INT().GetSymbol().GetText(),
+			ColAbs: true,
+			RowAbs: true,
+		}
+		s.Builder.Add(n)
 
-// EnterCell is called when production cell is entered.
-func (s *ExprBuildListener) EnterCell(ctx *parser.CellContext) {
-	r := &ENode{MyToken: MyToken{Token: ctx.EQ().GetSymbol(), TType: parser.ExprParserROOT}}
-	s.Builder = ctree.NewWalkableBuild("TREE", r)
-}
-
-// ExitCell is called when production cell is exited.
-func (s *ExprBuildListener) ExitCell(ctx *parser.CellContext) {}
-
-// EnterStartexpr is called when production startexpr is entered.
-func (s *ExprBuildListener) EnterStartexpr(ctx *parser.StartexprContext) {
-	r := &ENode{MyToken: MyToken{Token: ctx.EOF().GetSymbol(), TType: parser.ExprParserROOT}}
-	s.Builder = ctree.NewWalkableBuild("TREE", r)
-}
-
-// EnterInfix is called when production Infix is entered.
-func (s *ExprBuildListener) EnterInfix(ctx *parser.InfixContext) {
-	n := &BinaryNode{MyToken: MyToken{Token: ctx.GetT(), TType: parser.ExprParserBINARYEXPR}, Operator: ctx.GetT().GetText()}
-	s.Builder.Add(n)
-	s.Builder.Down()
-}
-
-// ExitInfix is called when production Infix is exited.
-func (s *ExprBuildListener) ExitInfix(ctx *parser.InfixContext) {
-	s.Builder.Up()
-}
-
-// EnterReference is called when production Reference is entered.
-func (s *ExprBuildListener) EnterReference(ctx *parser.ReferenceContext) {}
-
-// ExitReference is called when production Reference is exited.
-func (s *ExprBuildListener) ExitReference(ctx *parser.ReferenceContext) {}
-
-// EnterPrefix is called when production Prefix is entered.
-func (s *ExprBuildListener) EnterPrefix(ctx *parser.PrefixContext) {
-	n := &UnaryNode{MyToken: MyToken{Token: ctx.GetPre(), TType: parser.ExprParserUNARYEXPR}, Operator: ctx.GetPre().GetText()}
-	s.Builder.Add(n)
-	s.Builder.Down()
-}
-
-// ExitPrefix is called when production Prefix is exited.
-func (s *ExprBuildListener) ExitPrefix(ctx *parser.PrefixContext) {
-	s.Builder.Up()
-}
-
-// EnterPostfix is called when production Postfix is entered.
-func (s *ExprBuildListener) EnterPostfix(ctx *parser.PostfixContext) {
-	n := &UnaryNode{MyToken: MyToken{Token: ctx.GetPost(), TType: parser.ExprParserUNARYEXPR}, Operator: ctx.GetPost().GetText()}
-	s.Builder.Add(n)
-	s.Builder.Down()
-}
-
-// ExitPostfix is called when production Postfix is exited.
-func (s *ExprBuildListener) ExitPostfix(ctx *parser.PostfixContext) {
-	s.Builder.Up()
-}
-
-// EnterError is called when production Error is entered.
-func (s *ExprBuildListener) EnterError(ctx *parser.ErrorContext) {}
-
-// ExitError is called when production Error is exited.
-func (s *ExprBuildListener) ExitError(ctx *parser.ErrorContext) {}
-
-// EnterInteger is called when production Integer is entered.
-func (s *ExprBuildListener) EnterInteger(ctx *parser.IntegerContext) {
-	v, err := strconv.Atoi(ctx.GetA().GetText())
-	if err != nil {
-		panic("")
+	case *parser.EHRefContext:
+	case *parser.HRangeContext:
+		n := &HRangeRef{MyToken: MyToken{
+			Token: ctx.GetRow1(), TType: parser.ExprParserHRANGEREF,
+		},
+		}
+		s.Builder.Add(n)
+		s.Builder.Down()
+		if ctx.GetRow1() == nil || ctx.GetRow2() == nil { // this only happen under antlr error recovery
+			return
+		}
+		{
+			v, err := strconv.Atoi(ctx.GetRow1().GetText())
+			if err != nil {
+				panic("")
+			}
+			n := &IntegerAtom{MyToken: MyToken{Token: ctx.GetRow1(), TType: parser.ExprParserINTEGERATOM}, Val: v}
+			s.Builder.Add(n)
+		}
+		{
+			v, err := strconv.Atoi(ctx.GetRow2().GetText())
+			if err != nil {
+				panic("")
+			}
+			n := &IntegerAtom{MyToken: MyToken{Token: ctx.GetRow2(), TType: parser.ExprParserINTEGERATOM}, Val: v}
+			s.Builder.Add(n)
+		}
+	case *parser.EnhancedRefContext:
+	case *parser.EnhancedRefPartsContext:
+	case *parser.EnhancedRefContentContext:
+	case *parser.ArgsContext:
+	case *parser.FnameContext:
+	case *parser.ElemsContext:
 	}
-	n := &IntegerAtom{MyToken: MyToken{Token: ctx.GetA(), TType: parser.ExprParserINTEGERATOM}, Val: v}
-	s.Builder.Add(n)
 }
 
-// EnterFloat is called when production Float is entered.
-func (s *ExprBuildListener) EnterFloat(ctx *parser.FloatContext) {
-	var v float64
-	_, err := fmt.Sscanf(ctx.GetA().GetText(), "%f", &v)
-	if err != nil {
-		panic("")
+func (s *ExprBuildListener) ExitEveryRule(ctx antlr.ParserRuleContext) {
+	switch ctx.(type) {
+	case *parser.CellContext:
+	case *parser.InfixContext:
+		s.Builder.Up()
+	case *parser.ReferenceContext:
+	case *parser.PrefixContext:
+		s.Builder.Up()
+	case *parser.PostfixContext:
+		s.Builder.Up()
+	case *parser.ErrorContext:
+	case *parser.IntersectContext:
+		s.Builder.Up()
+	case *parser.RangeContext:
+		s.Builder.Up()
+	case *parser.EHRefContext:
+	case *parser.HRangeContext:
+		s.Builder.Up()
+	case *parser.A1RefContext:
+	case *parser.BlockOrRefContext:
+		s.Builder.Up()
+	case *parser.FunctionCallContext:
+		s.Builder.Up()
+	case *parser.ArgContext:
+		// s.Builder.Up()
+	case *parser.EnhancedRefContext:
+	case *parser.EnhancedRefPartsContext:
+	case *parser.EnhancedRefContentContext:
+	case *parser.ArgsContext:
+	case *parser.FnameContext:
+	case *parser.ElemsContext:
 	}
-	n := &FloatAtom{MyToken: MyToken{Token: ctx.GetA(), TType: parser.ExprParserFLOATATOM}, Val: v}
-	s.Builder.Add(n)
 }
-
-// EnterString is called when production String is entered.
-func (s *ExprBuildListener) EnterString(ctx *parser.StringContext) {
-	n := &StringAtom{MyToken: MyToken{Token: ctx.GetA(), TType: parser.ExprParserSTRINGATOM}, Val: ctx.GetA().GetText()}
-	s.Builder.Add(n)
-}
-
-// EnterErrorType is called when production errorType is entered.
-func (s *ExprBuildListener) EnterErrorType(ctx *parser.ErrorTypeContext) {
-	e := &ErrorAtom{MyToken: MyToken{Token: ctx.GetA(), TType: parser.ExprParserERRORATOM}}
-	if ctx.GetB() != nil {
-		e.Text = ctx.GetA().GetText() + ctx.GetB().GetText() + ctx.GetC().GetText()
-	}
-	e.Text = ctx.GetA().GetText() + ctx.GetC().GetText()
-	s.Builder.Add(e)
-}
-
-// EnterTrue is called when production True is entered.
-func (s *ExprBuildListener) EnterTrue(ctx *parser.TrueContext) {
-	n := &BoolAtom{MyToken: MyToken{Token: ctx.GetA(), TType: parser.ExprParserBOOLATOM}, Val: true}
-	s.Builder.Add(n)
-}
-
-// EnterFalse is called when production False is entered.
-func (s *ExprBuildListener) EnterFalse(ctx *parser.FalseContext) {
-	n := &BoolAtom{MyToken: MyToken{Token: ctx.GetA(), TType: parser.ExprParserBOOLATOM}, Val: false}
-	s.Builder.Add(n)
-}
-
-// EnterIntersect is called when production Intersect is entered.
-func (s *ExprBuildListener) EnterIntersect(ctx *parser.IntersectContext) {}
-
-// ExitIntersect is called when production Intersect is exited.
-func (s *ExprBuildListener) ExitIntersect(ctx *parser.IntersectContext) {}
-
-// EnterRange is called when production Range is entered.
-func (s *ExprBuildListener) EnterRange(ctx *parser.RangeContext) {}
-
-// ExitRange is called when production Range is exited.
-func (s *ExprBuildListener) ExitRange(ctx *parser.RangeContext) {}
-
-// EnterEHRef is called when production EHRef is entered.
-func (s *ExprBuildListener) EnterEHRef(ctx *parser.EHRefContext) {}
-
-// ExitEHRef is called when production EHRef is exited.
-func (s *ExprBuildListener) ExitEHRef(ctx *parser.EHRefContext) {}
-
-// EnterHRange is called when production HRange is entered.
-func (s *ExprBuildListener) EnterHRange(ctx *parser.HRangeContext) {}
-
-// ExitHRange is called when production HRange is exited.
-func (s *ExprBuildListener) ExitHRange(ctx *parser.HRangeContext) {}
-
-// EnterA1Ref is called when production A1Ref is entered.
-func (s *ExprBuildListener) EnterA1Ref(ctx *parser.A1RefContext) {}
-
-// ExitA1Ref is called when production A1Ref is exited.
-func (s *ExprBuildListener) ExitA1Ref(ctx *parser.A1RefContext) {}
-
-// EnterBlockOrRef is called when production BlockOrRef is entered.
-func (s *ExprBuildListener) EnterBlockOrRef(ctx *parser.BlockOrRefContext) {}
-
-// ExitBlockOrRef is called when production BlockOrRef is exited.
-func (s *ExprBuildListener) ExitBlockOrRef(ctx *parser.BlockOrRefContext) {}
-
-// EnterFunctionCall is called when production FunctionCall is entered.
-func (s *ExprBuildListener) EnterFunctionCall(ctx *parser.FunctionCallContext) {}
-
-// ExitFunctionCall is called when production FunctionCall is exited.
-func (s *ExprBuildListener) ExitFunctionCall(ctx *parser.FunctionCallContext) {}
-
-// EnterId_a1 is called when production id_a1 is entered.
-func (s *ExprBuildListener) EnterId_a1(ctx *parser.Id_a1Context) {}
-
-// ExitId_a1 is called when production id_a1 is exited.
-func (s *ExprBuildListener) ExitId_a1(ctx *parser.Id_a1Context) {}
-
-// EnterEnhancedRef is called when production enhancedRef is entered.
-func (s *ExprBuildListener) EnterEnhancedRef(ctx *parser.EnhancedRefContext) {}
-
-// ExitEnhancedRef is called when production enhancedRef is exited.
-func (s *ExprBuildListener) ExitEnhancedRef(ctx *parser.EnhancedRefContext) {}
-
-// EnterEnhancedRefParts is called when production enhancedRefParts is entered.
-func (s *ExprBuildListener) EnterEnhancedRefParts(ctx *parser.EnhancedRefPartsContext) {}
-
-// ExitEnhancedRefParts is called when production enhancedRefParts is exited.
-func (s *ExprBuildListener) ExitEnhancedRefParts(ctx *parser.EnhancedRefPartsContext) {}
-
-// EnterEnhancedRefContent is called when production enhancedRefContent is entered.
-func (s *ExprBuildListener) EnterEnhancedRefContent(ctx *parser.EnhancedRefContentContext) {}
-
-// ExitEnhancedRefContent is called when production enhancedRefContent is exited.
-func (s *ExprBuildListener) ExitEnhancedRefContent(ctx *parser.EnhancedRefContentContext) {}
-
-// EnterArgs is called when production args is entered.
-func (s *ExprBuildListener) EnterArgs(ctx *parser.ArgsContext) {}
-
-// ExitArgs is called when production args is exited.
-func (s *ExprBuildListener) ExitArgs(ctx *parser.ArgsContext) {}
-
-// EnterFname is called when production fname is entered.
-func (s *ExprBuildListener) EnterFname(ctx *parser.FnameContext) {}
-
-// ExitFname is called when production fname is exited.
-func (s *ExprBuildListener) ExitFname(ctx *parser.FnameContext) {}
-
-// EnterElems is called when production elems is entered.
-func (s *ExprBuildListener) EnterElems(ctx *parser.ElemsContext) {}
-
-// ExitElems is called when production elems is exited.
-func (s *ExprBuildListener) ExitElems(ctx *parser.ElemsContext) {}
 
 type errorListener struct {
 }
@@ -443,11 +543,21 @@ func (tbl *ExprBuildListener) SyntaxError(recognizer antlr.Recognizer, offending
 	if tbl.debug {
 		fmt.Printf("SyntaxError %d:%d <%s>\n", line, column, msg)
 	}
-	tbl.err = fmt.Sprintf("SyntaxError %d:%d <%s>", line, column, msg)
+	if strings.HasPrefix(msg, "report") { // TODO remove NewDiagnosticErrorListener and move warning to ReportAmbiguity etc. when getDecisionDescription is make public
+		tbl.warning = fmt.Sprintf("At %d:%d <%s>", line, column, msg)
+	} else {
+		tbl.err = fmt.Sprintf("SyntaxError %d:%d <%s>", line, column, msg)
+	}
 	// panic("line " + strconv.Itoa(line) + ":" + strconv.Itoa(column) + " " + msg)
 }
 
-func (tbl *ExprBuildListener) ReportAmbiguity(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex int, exact bool, ambigAlts *antlr.BitSet, configs antlr.ATNConfigSet) {
+func (tbl *ExprBuildListener) ReportAmbiguity(
+	recognizer antlr.Parser,
+	dfa *antlr.DFA,
+	startIndex, stopIndex int,
+	exact bool,
+	ambigAlts *antlr.BitSet,
+	configs antlr.ATNConfigSet) {
 	// panic("ReportAmbiguity")
 	if tbl.debug {
 		fmt.Printf("ReportAmbiguity rec:%v dfs:%v start:%d stop:%d, exact:%v, ambigAlts:%v config:%v\n", recognizer, dfa, startIndex, stopIndex, exact, ambigAlts, configs)

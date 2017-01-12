@@ -3,6 +3,7 @@ package eval
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	antlr "github.com/wxio/antlr4-go"
 	"github.com/wxio/antlr4-go-examples/ctree"
@@ -78,16 +79,38 @@ func WalkTree(tree ctree.Tree) (Atom, error) {
 	return ret.GetAtom(), nil
 }
 
+func WalkTreeFromStartExpr(tree ctree.Tree) (Atom, error) {
+	start := tree.Children(tree.Root())[0]
+	var tttype *TTType
+	var tts antlr.TokenStream = ctree.NewTreeTokenSourceFromStart(tree, tttype, start)
+	p := NewExprWalker(tts)
+	p.RemoveErrorListeners()
+	p.AddErrorListener(antlr.NewDiagnosticErrorListener(true))
+	tbl := &WalkListener{}
+	p.AddErrorListener(tbl)
+	p.BuildParseTrees = false
+	ret := p.Startexpr()
+	if tbl.err != nil {
+		return nil, tbl.err
+	}
+	return ret.GetAtom(), nil
+}
+
 type WalkListener struct {
-	debug bool
-	err   error
+	debug   bool
+	warning string
+	err     error
 }
 
 func (tbl *WalkListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
 	if tbl.debug {
 		fmt.Printf("SyntaxError %d:%d <%s>\n", line, column, msg)
 	}
-	tbl.err = fmt.Errorf("SyntaxError %d:%d <%s>", line, column, msg)
+	if strings.HasPrefix(msg, "report") { // TODO remove NewDiagnosticErrorListener and move warning to ReportAmbiguity etc. when getDecisionDescription is make public
+		tbl.warning = fmt.Sprintf("At %d:%d <%s>", line, column, msg)
+	} else {
+		tbl.err = fmt.Errorf("SyntaxError %d:%d <%s>", line, column, msg)
+	}
 	// panic("line " + strconv.Itoa(line) + ":" + strconv.Itoa(column) + " " + msg)
 }
 

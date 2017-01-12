@@ -11,12 +11,16 @@ tokens {
 	FUNCEXPR,
 	BLOCKORREFEXPR,
 
+	ARG,
+
 	ERRORATOM,
 	FLOATATOM,
 	INTEGERATOM,
 	BOOLATOM,
 	STRINGATOM,
 
+	A1REF,
+	NAMEDREF,
 	RANGEREF,
 	INTERSECTREF,
 	ENHANCEDREF,
@@ -70,6 +74,7 @@ ref
     | r1=ref ws+=WS+ r2=ref                     			#Intersect
 //    | r1=ref l+=WS* COMMA r+=WS* r2=ref         			#Union
     | name=fname LP l+=WS* args? r+=WS* RP      			#FunctionCall
+	//todo empty func - down up per arg
     | LP l+=WS* elems r+=WS* RP                 			#BlockOrRef
     | a1=id_a1                                  			#A1Ref
     | row1=INT COLON row2=INT                   			#HRange
@@ -77,11 +82,13 @@ ref
 ;
 
 id_a1
-    // CHAR INT                 
-    : (CHAR | UNDERSCORE | BSLASH) (CHAR | UNDERSCORE | BSLASH | INT )*   // A1, or NamedRange or Column (as in A:A)
-    | DOLLAR CHAR INT          
-    | CHAR DOLLAR INT          
-    | DOLLAR CHAR DOLLAR INT   
+    : CHAR INT                 #NameOrA1
+	| first=(CHAR | UNDERSCORE | BSLASH) rest+=(CHAR | UNDERSCORE | BSLASH | INT )*
+	  // A1 or NamedRange
+															#NamedRange
+    | DOLLAR CHAR INT          								#A1ColumnAbs
+    | CHAR DOLLAR INT          								#A1RowAbs
+    | DOLLAR CHAR DOLLAR INT   								#A1Abs
 ;
 
 enhancedRef
@@ -97,7 +104,11 @@ enhancedRefContent
 ;
 
 args
-    : a=expr (l+=WS* COMMA r+=WS* b+=args)? 
+    : a=arg (l+=WS* COMMA r+=WS* b+=args)? 
+;
+
+arg
+	: e=expr
 ;
 
 fname 

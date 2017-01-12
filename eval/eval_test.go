@@ -42,7 +42,14 @@ func TestEval(t *testing.T) {
 		// {"union" /*		  */, "(a1,x10)", "(BLOCKORUNION a1 x10)"},
 		// {"union" /*		  */, "(a,b,c)", "(BLOCKORUNION a b c)"}, // currently ReportContextSensitivity
 		{"name" /*		  */, `"ab12cd"`, &StringAtom{Val: `"ab12cd"`}},
-		// {"func" /*		  */, "SUM()", "(FUNC SUM)"},
+		{"func" /*		  */, "SUM()", &IntegerAtom{Val: 0}},
+		{"func" /*		  */, "SUM(1)", &IntegerAtom{Val: 1}},
+		{"lazy func" /*		  */, "IF(1,2,3)", &IntegerAtom{Val: 2}},
+		{"lazy func" /*		  */, "IF(1,2)", &IntegerAtom{Val: 2}},
+		{"lazy func nested" /*		  */, "IF(1,sum())", &IntegerAtom{Val: 0}},
+		{"lazy func nested" /*		  */, "IF(1,sum(sum()))", &IntegerAtom{Val: 0}},
+		{"lazy func nested" /*		  */, "IF(1,if(2,3,4))", &IntegerAtom{Val: 3}},
+		// {"lazy func nested" /*		  */, "IF(1,if(2,3),if(4,5))", &FloatAtom{Val: 1}},
 		// {"func" /*		  */, "SUM(1)", "(FUNC SUM 1)"},
 		// {"func" /*		  */, "SUM(1,2)", "(FUNC SUM 1 2)"},
 		// {"func" /*		  */, "SUM(a1:x10)", "(FUNC SUM (RANGE a1 x10))"},
@@ -55,9 +62,9 @@ func TestEval(t *testing.T) {
 		{"block" /*		  */, "(1+2)^3", &IntegerAtom{Val: 27}},
 		{"error" /*		  */, "#ERROR!", &ErrorAtom{Text: "ERROR!"}},
 		// {"error" /*		  */, "#REALLY?", "(ERROR REALLY?)"},
-		// {"space" /*		  */, "-    1", "(- 1)"},
-		// {"space" /*		  */, "5   %", "(% 5)"},
-		// {"space" /*		  */, "1   ^    2", "(^ 1 2)"},
+		{"space" /*		  */, "-    1", &IntegerAtom{Val: -1}},
+		{"space" /*		  */, "5   %", &FloatAtom{Val: 0.05}},
+		{"space" /*		  */, "1   ^    2", &IntegerAtom{Val: 1}},
 		// {"space" /*		  */, "1   =    2", "(= 1 2)"},
 		// {"space" /*		  */, "(a   ,    b)", "(BLOCKORUNION a b)"},
 		// {"space" /*		  */, "SUM(    a   ,    b)", "(FUNC SUM a b)"},
@@ -87,7 +94,7 @@ expected '%+#v'
 received '%+#v'
 received '%v'
 received '%+#v'
-				`, tt.expected, value, got.TreeString(), got)
+				`, tt.expected, value, got.TreeString(), got.SExpr(nil))
 				}
 			}()
 		})

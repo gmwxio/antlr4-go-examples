@@ -11,22 +11,13 @@ import (
 
 type precedence struct {
 	tree    ctree.Tree
-	config  PrecedenceConfig
 	convert map[reflect.Type](func(Atom) Atom)
 }
 
 var MathPrecedences *precedence = &precedence{}
 var StringPrecedences *precedence = &precedence{}
 
-type PrecedenceConfig int
-
-const (
-	CommonParent PrecedenceConfig = iota
-	FailCousins
-)
-
-func (p *precedence) Config() PrecedenceConfig { return p.config }
-func (p *precedence) Tree() ctree.Tree         { return p.tree }
+func (p *precedence) Tree() ctree.Tree { return p.tree }
 func (p *precedence) ConvertUp(from reflect.Type) func(from Atom) Atom {
 	return p.convert[from]
 }
@@ -34,7 +25,6 @@ func (p *precedence) ConvertUp(from reflect.Type) func(from Atom) Atom {
 var _ Precendence = &precedence{}
 
 type Precendence interface {
-	Config() PrecedenceConfig // I think this is just an optimisation
 	Tree() ctree.Tree
 	ConvertUp(reflect.Type) func(from Atom) Atom
 }
@@ -42,7 +32,6 @@ type Precendence interface {
 type CUP func(Atom) Atom
 
 func init() {
-	MathPrecedences.config = FailCousins
 	MathPrecedences.tree = ctree.BuildTree("", &struct{}{}).
 		Add(reflect.TypeOf(&ErrorAtom{})).Down().
 		/**/ Add(reflect.TypeOf(&FloatAtom{})).Down().
@@ -71,7 +60,6 @@ func init() {
 		return &ErrorAtom{Text: "#Value!"} // TODO return singelton value error
 	}
 
-	StringPrecedences.config = CommonParent
 	StringPrecedences.tree = ctree.BuildTree("", &struct{}{}).
 		Add(reflect.TypeOf(&ErrorAtom{})).Down().
 		/**/ Add(reflect.TypeOf(&StringAtom{})).Down().

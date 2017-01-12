@@ -106,6 +106,19 @@ func NewTreeTokenSource(tree Tree, tttype TreeTokenTypes) antlr.TokenStream {
 	return tts
 }
 
+func NewTreeTokenSourceFromStart(tree Tree, tttype TreeTokenTypes, start INode) antlr.TokenStream {
+	tts := &TreeTokenSource{}
+	tts.tree = tree
+	tts.tttype = tttype
+	tts.nodes = make([]INode, 0, tree.Size())
+	tts.iterator = NewPreOrderTreeIterator(tree, start)
+	for tts.iterator.HasNext() {
+		n := tts.iterator.Next()
+		tts.nodes = append(tts.nodes, n)
+	}
+	return tts
+}
+
 // same a common token
 func (tts *TreeTokenSource) Mark() int                                         { return 0 }
 func (tts *TreeTokenSource) Release(marker int)                                {}
