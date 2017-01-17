@@ -1,0 +1,630 @@
+Generating Go Code 
+for fun & profit.
+19 Jan 2017
+
+Sydney Go meetup
+
+Gary Miller
+WX
+gm@wx.io
+
+* Context
+
+I am interested in 
+
+- Democratising access to computation
+
+- Programming Language Evolution
+
+- Solving problems with language. Bringing the Solution domain closer to the Problem domain (eg DSLs)
+
+Current project
+
+- Evolving the Spreadsheet paradigm
+Making the world's most popular programming paradigm more expressive and lowering the barriers to expertise.
+
+*  Democratising access to computation
+
+Programming Language Design from the perspective of innate human cognitive ability
+
+- most people has issues with variables and iteration (never mind recursion and higher order functions)
+
+- only a small percentage of people are natural hierarchical thinkers
+
+- programming language design heuristic (orthogonality, natural ordering, discriminators first, uniform access, firehost principle etc.). Education of programming language creators and more research needed.    
+
+- gental slope / gradual structuring
+
+* Call for PXD - Programming Experience Design
+
+.link http://alarmingdevelopment.org/?p=680#comment-59689 
+
+.image pxd.png _ 800
+
+* PXD is called many things by many people
+a few references
+
+.link http://melconway.com/Home/pdf/simplify.pdf Mel Conway "Toward Simplifying Application Development, in a Dozen Lessons"
+.link http://alarmingdevelopment.org/ Jonathan Edwards - Alarming Development; Dispatches from the Programmer Liberation Front
+.link https://harc.ycr.org/ HARC - Human Advancement Research Community
+.link https://quorumlanguage.com/ Quorum Language
+.link http://www.cs.cmu.edu/~NatProg/programminglanguageusability/ Usability of Programming Languages - SIG
+.link http://eusesconsortium.org/ EUSES - End Users Shaping Effective Software
+
+* Programming Language Evolution
+
+Make programming easier & address new requirements (eg concurrency)
+A powerful technique to achieve this:
+
+*Linguistic* *Abstraction*  (a.k.a. Design Pattern capture)
+ - the act of creating new language features based on existing patterns of use
+
+_This_generation's_language_patterns_are_the_next_generations_features._
+
+*Historic* *examples*
+- Stack instructions in hardware to support function calls
+- Built-in data structures (eg maps)
+
+*Question:*
+Does this imply that trees & graphs are possible future built-in data structures?
+Trees: More likely Algebraic Data Types should be - as Trees become emergent.
+Graphs: Don't know
+
+* Slight detour into Trees
+
+.image purpletree.jpeg _ 700
+
+* 
+
+Trees are heavily used in my Go code
+
+    type Tree interface {
+        ...
+        Children(parent INode) []INode
+        CommonAncestor(a, b INode) INode
+        SExpr(start INode) string
+        ...
+    }
+
+Internal DSL for building trees
+
+    // Fluent API for building a tree
+    type Builder interface {
+        Add(n INode) Builder
+        Down() Builder
+        Up() Builder
+        Build() Tree
+        Current() INode
+    }
+
+* Implementation - adjacency list
+
+    // The internal structure of the centralised tree
+    type ctree struct {
+        p2    map[INode][]INode        // Map of parent to slice of children
+        c2    map[INode]INode          // Map of child to parent
+        root  INode                    // Hidden root of the tree
+    }
+
+This is far easier to use than a recursive tree.
+
+And easily extends to a DiGraph adjacency list structure.
+
+	type graph struct {
+		p2    map[Node][]Node
+		c2    map[Node][]Node
+		roots []Node
+	}
+
+
+* Back to Linguistic Abstraction (in pictures)
+
+(annotated during talk)
+
+#.image appp_07in01.png _ 600
+.image appp_07in01-org.png _ 600
+
+Apprenticeship Patterns
+Guidance for the Aspiring Software Craftsman
+By Dave Hoover, Adewale Oshineye
+
+* 
+
+Red line (added for this talk) = desired outcome of language evolution
+
+.image dunning_kruger_effect_by_addattack-d5hg2e4.png _ 500
+
+©2012-2017 ADDattack
+
+* Spreadsheet & Gradual Structuring
+
+.image gradual_structuring.png _ 800
+
+
+* Solving problems with language
+
+- Greenspun's tenth rule of programming
+
+_"Any_sufficiently_complicated_C_or_Fortran_program_contains_
+_an_ad-hoc,_informally-specified,_bug-ridden,_slow_implementation_of_
+_half_of_Common_Lisp."_
+
+: Much of programming is implement forms of expressing computation.
+: i.e. PL = way of expressing computations
+: Some are explicit (eg rules engines, query languages ... programming language), but many are more
+: subtle - APIs and even UIs can be considered as the construction of language.
+
+- Martin DeMello, 28 April 2008
+
+_"Any_sufficiently_well-commented_lisp_program_contains_an_ML_program_in_its_comments"_
+
+: PLs evolve
+
+* Why Generate Code
+
+From Rob's talk on Ivy
+.image grammarascomment.png _ 600
+
+Write the grammar then generate code. Especially useful when prototyping.
+
+* Antlr4 &  Go - Overview
+
+Antlr
+
+Go Generate
+
+Scanning
+
+Parsing
+
+Tree Walking
+
+Multiple Grammars
+
+* Antlr
+
+ANother Tool for Language Recognition.
+
+Think YACC (Yet Another Compiler-Compiler), 
+but more powerful & more developer friendly.
+
+Written in Java.
+Most parsers generated are linear.
+Pathalogical left recursive are at worst quadratic (you get told, but only at runtime) 
+
+Antlr3:
+
+    Lex -> Parse -> User defined AST -> AST grammar -> Walk AST -> AST -> Walk -> ...
+
+Antlr4: 
+
+    Lex -> Parse -> Auto Parse tree (CST)         -> Walk CST calling listener!!!
+                 -> Generated Listener Interface  /
+ 
+.link https://github.com/antlr/antlr4
+
+* 
+
+.image antlr4gomerge.png
+
+I have pushed somed minor commits. Please contribute!
+.link https://github.com/antlr/antlr4
+
+* TL;DL(R)
+
+For a more Go gettable version with built Java jar
+.link https://github.com/wxio/antlr4-go
+
+    mkdir antlr4test
+    cd antlr4test
+    mkdir src
+    export GOPATH=`pwd`
+    go get github.com/wxio/antlr4-go
+    go get github.com/wxio/antlr4-go-examples
+    cd src/github.com/wxio/antlr4-go-examples
+    go generate ./...
+    go test ./... 
+
+* antlr4-go-examples - Directory Structure & Files
+
+.image dirstructure.png
+
+* Go Generate
+
+Why remember commands or have an external build process when we have 
+ 
+ go generate
+
+gen_darwin.go (wrapped & commented for readablity)
+
+    package eval
+
+    // Antlr tool
+    //go:generate java -jar $GOPATH/src/github.com/wxio/antlr4-go/lib/antlr4-4.6.1-SNAPSHOT-complete.jar 
+        -o parser                           # Output directory
+        -Dlanguage=Go                       # Language target
+        ExprLexer.g4 ExprParser.g4          # Grammar files
+
+    // Replace generate import package
+    //go:generate sh -c "(cd parser; sed -i '' -e 's!github.com/antlr/antlr4/runtime/Go/antlr!github.com/wxio/antlr4-go!' *.go )"
+
+: The main Antlr4 repo is not very go gettable
+
+* Tokens
+
+    lexer grammar ExprLexer;
+
+    DQ       : '\"'  ;
+    ...
+    XMARK    : '!'   ;
+
+    TRUE     : 'T' 'R' 'U' 'E';
+    FALSE    : 'F' 'A' 'L' 'S' 'E';
+
+    CHAR     : ('a'..'z'|'A'..'Z')+;
+    INT      : DIGITS ;
+    STRING   : '"' ( '"' '"' | ~('\\'|'"') )* '"' ;
+    WS       : ( ' ' | '\t' | '\r' | '\n' | '\u00A0' );
+
+    fragment DIGITS   : '0'..'9'+ ;
+
+ExprLexer.tokens 
+
+	DQ=1
+	XMARK=28
+	STRING=35
+
+* Parsing (minimal)
+
+    parser grammar ExprParser;
+
+    options { tokenVocab = ExprLexer; }
+
+    startexpr : expr EOF ;
+    expr
+        : '+'|'-' expr                          
+        | expr '%'                               
+        | <assoc=right> expr '^' expr                   
+        | expr '*'|'/' expr                   
+        | expr '+'|'-' expr                   
+        | expr '&' expr                   
+        | expr (GT|LT|GTE|LTE|EQ|NEQ) expr                                                                
+        | atom                                                
+        | ref                                                   
+        | errorType                                             
+    ;
+
+    ...
+
+
+* Parsing (what they really look like)
+
+    parser grammar ExprParser;
+
+    tokens  { DOWN, ... }
+    options { tokenVocab = ExprLexer; }
+
+    startexpr : expr EOF ;
+    expr
+        : pre=('+'|'-') ws+=WS* e=expr                          #Prefix
+        | e=expr ws+=WS* post='%'                               #Postfix
+        | e1=expr l+=WS* t='^' r+=WS* e2=expr                   #Infix // | <assoc=right> expr '^' expr #EXP // Excel is left associative - really!!!
+        | e1=expr l+=WS* t='*' r+=WS* e2=expr                   #Infix
+        | e1=expr l+=WS* t='/' r+=WS* e2=expr                   #Infix
+        | e1=expr l+=WS* t='+' r+=WS* e2=expr                   #Infix
+        | e1=expr l+=WS* t='-' r+=WS* e2=expr                   #Infix
+        | e1=expr l+=WS* t='&' r+=WS* e2=expr                   #Infix
+        | e1=expr l+=WS* t=(GT|LT|GTE|LTE|EQ|NEQ) r+=WS* e2=expr
+                                                                #Infix
+        | a=atom                                                #Atomic
+        | ref                                                   #Reference
+        | errorType                                             #Error
+    ;
+
+    ...
+
+* Listener
+
+exprparser_base_listener.go
+
+    // Generated from ExprParser.g4 by ANTLR 4.6.1.
+    package parser // ExprParser
+    import "github.com/wxio/antlr4-go"
+
+    // EnterEveryRule is called when any rule is entered.
+    func (s *BaseExprParserListener) EnterEveryRule(ctx antlr.ParserRuleContext) {}
+
+    // ExitEveryRule is called when any rule is exited.
+    func (s *BaseExprParserListener) ExitEveryRule(ctx antlr.ParserRuleContext) {}
+
+    // EnterInfix is called when production Infix is entered.
+    func (s *BaseExprParserListener) EnterInfix(ctx *InfixContext) {}
+
+    // ExitInfix is called when production Infix is exited.
+    func (s *BaseExprParserListener) ExitInfix(ctx *InfixContext) {}
+
+* Putting it all together
+
+Grammar
+
+        | e1=expr l+=WS* t='/' r+=WS* e2=expr                   #Infix
+
+Listener
+
+    func (s *BaseExprParserListener) EnterInfix(ctx *InfixContext) {}
+
+Callback type
+
+    type InfixContext struct {
+        *ExprContext
+        ...
+    }
+
+    func (s *InfixContext) GetT() antlr.Token { return s.t }
+    func (s *InfixContext) GetL() []antlr.Token { return s.l }
+    func (s *InfixContext) GetR() []antlr.Token { return s.r }
+    func (s *InfixContext) GetE1() IExprContext { return s.e1 }
+    func (s *InfixContext) GetE2() IExprContext { return s.e2 }
+
+* AST Builder (builder.go)
+
+    type ExprBuildListener struct {
+        *parser.BaseExprParserListener
+        Builder ctree.WalkableBuilder
+        ...
+    }
+    
+    func (s *ExprBuildListener) EnterEveryRule(ctx antlr.ParserRuleContext) {
+        switch ctx := ctx.(type) {
+        ...
+        case *parser.InfixContext:
+            n := &BinaryNode{MyToken: MyToken{Token: ctx.GetT(), TType: parser.ExprParserBINARYEXPR}, Operator: ctx.GetT().GetText()}
+            s.Builder.Add(n)
+            s.Builder.Down()
+        ...
+        }
+    }
+    	
+    func (s *ExprBuildListener) ExitEveryRule(ctx antlr.ParserRuleContext) {
+        switch ctx.(type) {
+        ...
+        case *parser.InfixContext:
+            s.Builder.Up()
+        }
+    }
+
+* Lex, Parser & Walk(parse tree)
+
+    func BuildEvalAST(exprRep string) (ctree.Tree, error) {
+
+        input := antlr.NewInputStream(exprRep)
+        lexer := parser.NewExprLexer(input)
+        lexer.RemoveErrorListeners()
+        lexer.AddErrorListener(&errorListener{})
+        stream := antlr.NewCommonTokenStream(lexer, 0)
+
+        p := parser.NewExprParser(stream)
+        p.RemoveErrorListeners()
+        p.AddErrorListener(antlr.NewDiagnosticErrorListener(true))
+        tbl := &ExprBuildListener{}
+        p.AddErrorListener(tbl)
+        tree := p.Startexpr()
+
+        antlr.ParseTreeWalkerDefault.Walk(tbl, tree)
+
+        if tbl.err != "" {
+            return nil, fmt.Errorf("ERROR:%v", tbl.err)
+        }
+        return tbl.Builder.Build(), nil
+    }
+
+* Lots of Tests
+
+    func TestBuildExprASTExpr(t *testing.T) {
+        tests := []struct {
+            name     string
+            input    string
+            expected string
+        }{
+            {"simple" /*      */, "1+2", "(+ (1 2))"},
+            {"precedents" /*  */, "1+2^3", "(+ (1 ^ (2 3)))"},
+            {"precedents" /*  */, "1^2+3", "(+ (^ (1 2) 3))"},
+        }
+        for _, tt := range tests {
+            t.Run(tt.name, func(t *testing.T) {
+                    got, err := BuildEvalAST(tt.input)
+                    ...
+                    sexpr := got.SExpr(got.Root())
+                    if sexpr != tt.expected {
+                        ...
+                    }
+            }
+        }
+    }
+
+
+* Tree Grammar (no longer idiomatic Antlr4)
+
+    parser grammar ExprWalker;
+    options { tokenVocab = ExprParser; }
+    @members {
+        type Atom interface {
+            Value() interface{}
+            Add(b Atom) Atom            
+            ...
+        }
+    }
+    start returns[Atom atom] 
+        : DOWN ROOT DOWN a=expr {$atom=$a.atom} UP UP EOF ;
+    expr returns[Atom atom]
+        : e=BINARYEXPR DOWN l=expr r=expr UP   { $atom=$e.(BinaryEval).Eval($l.atom, $r.atom) }
+        | e=UNARYEXPR DOWN l=expr UP           { $atom=$e.(UnaryEval).Eval($l.atom) }
+        | e=INTEGERATOM                        { $atom=$e.(Atom) }
+        ...
+    ;
+    ...
+
+ExprParser.g4
+
+    parser grammar ExprParser;
+    tokens  { DOWN, ... }
+
+* Custom Token Stream & Walk Tree
+
+    type TTType struct{}
+
+    func (*TTType) Eof() int  { return ExprWalkerEOF }
+    func (*TTType) Down() int { return ExprWalkerDOWN }
+    func (*TTType) Up() int   { return ExprWalkerUP }
+
+    func WalkTree(tree ctree.Tree) (Atom, error) {
+        var tttype *TTType
+        var tts antlr.TokenStream = ctree.NewTreeTokenSource(tree, tttype)
+        p := NewExprWalker(tts)
+        p.RemoveErrorListeners()
+        p.AddErrorListener(antlr.NewDiagnosticErrorListener(true))
+        tbl := &WalkListener{}
+        p.AddErrorListener(tbl)
+        p.BuildParseTrees = false
+        ret := p.Start()
+        if tbl.err != nil {
+            return nil, tbl.err
+        }
+        return ret.GetAtom(), nil
+    }
+
+* Again - lots of tests
+
+    func TestEval(t *testing.T) {
+        tests := []struct {
+            name     string
+            input    string
+            expected walker.Atom
+        }{
+            {"simple" /*      */, "1+2", &IntegerAtom{Val: 3}},
+            {"simple" /*      */, "1+2+4", &IntegerAtom{Val: 7}},
+            {"float float" /* */, "1.0+2.0", &FloatAtom{Val: 3}},
+            {"int float" /*   */, "1+2.0", &FloatAtom{Val: 3}},
+            {"precedents" /*  */, "1+2^3", &IntegerAtom{Val: 9}},
+            {"precedents" /*  */, "1^2+3", &IntegerAtom{Val: 4}},
+            {"precedents" /*  */, "2^2^3", &IntegerAtom{Val: 64}}, // Not 256
+        }
+        for _, tt := range tests {
+            t.Run(tt.name, func(t *testing.T) {
+                    got, err := BuildEvalAST(tt.input)
+                    value, err := WalkTree(got)
+                    if value.Value() != tt.expected.Value() {
+                    }
+            }
+        }
+    }
+
+
+* Mixed expressions
+
+A note of dealing with mixed types (aka "_really_ don't like having to write _n²_ pieces of code"). Binary expressions only need to deal with values of the same type.
+
+    func (e *BinaryNode) Eval(left, right Atom) Atom {
+        switch e.Operator {
+        case "+":
+            left, right = convertTypes(left, right, MathPrecedences)
+            return left.Add(right)
+        ...
+        }
+    }
+    func convertTypes(left, right Atom, p Precendence) (Atom, Atom) {
+        ltype, rtype := reflect.TypeOf(left), reflect.TypeOf(right)
+        ctype := p.Tree().CommonAncestor(ltype, rtype)
+        for ltype != ctype {
+            left = p.ConvertUp(ltype)(left)
+            ltype = reflect.TypeOf(left)
+        }
+        ...
+        return left, right
+    }
+
+.link http://go-talks.appspot.com/github.com/robpike/ivy/talks/ivy.slide#26 This is a bit different from Ivy
+
+* Precedence Tree & Map of Single Level ConvertUp Functions
+
+    type precedence struct {
+        tree    ctree.Tree
+        convert map[reflect.Type](func(Atom) Atom)
+    }
+    var MathPrecedences *precedence = &precedence{}
+
+    func init() {
+        MathPrecedences.tree = ctree.BuildTree("", &struct{}{}).
+            Add(reflect.TypeOf(&ErrorAtom{})).Down().
+            /**/ Add(reflect.TypeOf(&IntegerAtom{})).Down().Add(reflect.TypeOf(&BoolAtom{})).Up().
+            /**/ Add(reflect.TypeOf(&StringAtom{})).Build()
+
+        MathPrecedences.convert[reflect.TypeOf(&StringAtom{})] = func(from Atom) Atom {
+            return &ErrorAtom{Text: "#Value!"}
+        }
+        ...
+    }
+
+This design is interested in nicely handling many types with a small number of operators. APL is more interested with the converse.
+
+* Multiple Steps & Multiple Grammars
+
+Capture text during lexing to be handled by another grammar
+
+    ANNOTATION
+        : '\\' ~'\\'* '\\'
+    ;
+
+Same can be done for text captured during parsing
+
+And during tree Walking
+
+    @members{
+        func (p *ExprBuildListener) isIf() bool {
+            return "if" == p.GetTokenStream().LT(1).GetText()
+        }
+    }
+
+    expr
+        ...
+        // Dot matches any token, but does not traverse them
+        | FUNCNODE {p.isIf()}? name DOWN expr . .? UP
+
+note: this is example code from Antlr3 (not tested in Antlr4)
+
+* Summary
+
+Newly released Antlr4 runtime and language target for Go.
+Needs some work, good for language prototyping. 
+
+Go tooling FTW!
+//go generate ..., build tags, benchmarking, profiling, etc.
+
+Type switches are really cool.
+
+	switch x := y.(type) {
+	case Fooer: x.Foo() // <- x is a Fooer 
+	case Barer: x.Bar() // no cast needed
+	}
+
+Lots of little steps is better than a few big ones.
+_Two_grammars_good,_four_grammars_better_
+
+.link https://github.com/wxio/antlr4-go
+
+* Conclusion
+
+Language design is a good metaphor for many aspect of software engineering.
+
+Programmer Experience Design (PXD) should be taught and studied.
+- Patterns (eg. Linguistic Abstraction)
+- Heuristics (eg. Orthogonality)
+- Idioms (eg. APIs as internal DSLs, Lex -> Parse -> Walk and keep walking)
+
+Your language (programming paradigm) probably constrains your thoughts.
+#A thought cannot be communicated more precisely th
+_Learning_adds_resolution_
+
+The Spreadsheet Paradigm is arguably the best starting point from which to democratise computation.
+
+

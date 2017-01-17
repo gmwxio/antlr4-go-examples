@@ -79,7 +79,7 @@ func NewEmptyGraph() Graph {
 	return g
 }
 
-// The internal structure of the centralised tree
+// The internal structure of the centralised graph
 type graph struct {
 	// Map of parent to slice of children
 	p2 map[Node][]Node
