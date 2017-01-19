@@ -37,7 +37,8 @@ type Namer interface {
 	GetName() string
 }
 
-func (p *ExprWalker) isIf(f antlr.Token) bool {
+func (p *ExprWalker) isIf() bool {
+	f := p.GetTokenStream().LT(1)
 	n := f.(Namer).GetName()
 	ret := strings.ToLower(n) == "if"
 	return ret
@@ -72,11 +73,11 @@ ref returns[Atom atom]
 	| INTERSECTREF	{ $atom = ret }
 	| ENHANCEDREF	{ $atom = ret }
 	| HRANGEREF		{ $atom = ret }
-	| f=FUNCEXPR {p.isIf($f)}? DOWN a=expr b=lazyarg UP	
+	| {p.isIf()}? f=FUNCEXPR DOWN a=expr b=lazyarg UP	
 	{ 
 		$atom = $f.(LazyEval).EvalLazy([]Atom{$a.atom}, []ctree.Tree{$b.tree} ) 
 	}
-	| f=FUNCEXPR {p.isIf($f)}? DOWN a=expr b=lazyarg c=lazyarg UP	
+	| {p.isIf()}? f=FUNCEXPR DOWN a=expr b=lazyarg c=lazyarg UP	
 	{ 
 		$atom = $f.(LazyEval).EvalLazy([]Atom{$a.atom}, []ctree.Tree{$b.tree, $c.tree} ) 
 	}

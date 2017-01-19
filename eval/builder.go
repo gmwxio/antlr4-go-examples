@@ -165,7 +165,7 @@ func (e *FuncNode) EvalLazy(strictArgs []Atom, lazyArgs []ctree.Tree) Atom {
 		}
 		got, err := WalkTreeFromStartExpr(arg)
 		if err != nil {
-			panic("")
+			return &ErrorAtom{Text: err.Error()}
 		}
 		return got
 	} else {

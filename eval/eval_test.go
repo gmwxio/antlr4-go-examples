@@ -44,6 +44,7 @@ func TestEval(t *testing.T) {
 		{"name" /*		  */, `"ab12cd"`, &StringAtom{Val: `"ab12cd"`}},
 		{"func" /*		  */, "SUM()", &IntegerAtom{Val: 0}},
 		{"func" /*		  */, "SUM(1)", &IntegerAtom{Val: 1}},
+		{"func" /*		  */, "SUM(1,2)", &IntegerAtom{Val: 3}},
 		{"lazy func" /*		  */, "IF(1,2,3)", &IntegerAtom{Val: 2}},
 		{"lazy func" /*		  */, "IF(1,2)", &IntegerAtom{Val: 2}},
 		{"lazy func nested" /*		  */, "IF(1,sum())", &IntegerAtom{Val: 0}},
