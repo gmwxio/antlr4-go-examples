@@ -36,10 +36,10 @@ func Example(s string) {
 
 	// Custom visitor
 	v := &ScratchVisitor{}
-	tree.Accept(v)
+	tree.Visit(v) 
 }
 
-var _ parser.ScratchListener = &ScratchListener{}
+// var _ parser.ScratchListener = &ScratchListener{}
 
 type ScratchErrorListener struct {
 	Warning string
@@ -99,16 +99,16 @@ func (s *ScratchListener) ExitStart1(ctx parser.IStart1Context) {
 	fmt.Printf("<%T\n", ctx)
 }
 
-func (s *ScratchListener) EnterA1(ctx parser.IA1Context) {
+func (s *ScratchListener) EnterA(ctx parser.IAContext) {
 	fmt.Printf(">%T\n", ctx)
 }
-func (s *ScratchListener) ExitA1(ctx parser.IA1Context) {
+func (s *ScratchListener) ExitA(ctx parser.IAContext) {
 	fmt.Printf("<%T\n", ctx)
 }
 
-func (s *ScratchListener) EnterB1(ctx parser.IB1Context) {
+func (s *ScratchListener) EnterB(ctx parser.IBContext) {
 	fmt.Printf(">%T\n", ctx)
 }
-func (s *ScratchListener) ExitB1(ctx parser.IB1Context) {
+func (s *ScratchListener) ExitB(ctx parser.IBContext) {
 	fmt.Printf("<%T\n", ctx)
 }

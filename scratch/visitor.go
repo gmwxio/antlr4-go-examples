@@ -19,11 +19,15 @@ type ScratchVisitor struct {
 	SExpr bytes.Buffer
 }
 
+// var _ parser.Start1ContextVisitor = &ScratchVisitor{}
+var _ parser.A1ContextVisitor = &ScratchVisitor{}
+var _ parser.B1ContextVisitor = &ScratchVisitor{}
+
 // Can be used to check that all Visit methods are "overriden"
 //var _ parser.ScratchVisitor = &ScratchVisitor{}
 
 // Filter
-func (v *ScratchVisitor) VisitNext(node antlr.Tree) bool {
+func (v *ScratchVisitor) VisitNext(node antlr.Tree, current interface{}) bool {
 	// Don't visit terminal node
 	if _, ok := node.(antlr.TerminalNode); ok {
 		return false
@@ -34,30 +38,41 @@ func (v *ScratchVisitor) VisitNext(node antlr.Tree) bool {
 	}
 	return true
 }
+func (v *ScratchVisitor) VisitRest(node antlr.RuleNode, current interface{}) bool {
+	if v.seenY {
+		v.seenY = true
+		return false
+	}
+	return true
+}
 
 // never called because VisitNext filters all TerminalNode types
-func (v *ScratchVisitor) VisitTerminal(node antlr.TerminalNode) {
+func (v *ScratchVisitor) VisitTerminal(node antlr.TerminalNode, args ...interface{}) (result interface{}) {
 	fmt.Printf("terminal %v\n", node.GetText())
+	return
 }
-func (v *ScratchVisitor) VisitErrorNode(node antlr.ErrorNode) {
+func (v *ScratchVisitor) VisitErrorNode(node antlr.ErrorNode, args ...interface{}) (result interface{}) {
+	fmt.Printf("ErrorNode %v\n", node)
+	return
 }
 
-func (v *ScratchVisitor) VisitA1(ctx parser.IA1Context, delegate antlr.ParseTreeVisitor) {
+func (v *ScratchVisitor) VisitA1(ctx parser.IA1Context, delegate antlr.ParseTreeVisitor, args ...interface{}) (result interface{}) {
 	// before children
 	// Don't visit any more children after a "y"
-	if v.seenY {
-		return
-	}
+	// if v.seenY {
+	// 	return
+	// }
 	v.SExpr.WriteString(" (a ")
-	v.SExpr.WriteString(ctx.GetT().GetText())
+	v.SExpr.WriteString(fmt.Sprintf("%v", ctx.GetT().GetText()))
 	fmt.Printf("%s\n", ctx.GetT().GetText())
-	v.lastAis1 = ctx.GetT().GetText() == "1"
+	// v.lastAis1 = ctx.GetT().GetText() == "1"
 	v.VisitChildren(ctx, delegate)
 	// afer children
 	v.SExpr.WriteString(")")
+	return
 }
 
-func (v *ScratchVisitor) VisitB1(ctx parser.IB1Context, delegate antlr.ParseTreeVisitor) {
+func (v *ScratchVisitor) VisitB1(ctx parser.IB1Context, delegate antlr.ParseTreeVisitor, args ...interface{}) (result interface{}) {
 	// before children
 	v.SExpr.WriteString(" (b ")
 	v.SExpr.WriteString(ctx.GetT().GetText())
@@ -66,4 +81,5 @@ func (v *ScratchVisitor) VisitB1(ctx parser.IB1Context, delegate antlr.ParseTree
 	v.VisitChildren(ctx, delegate)
 	// afer children
 	v.SExpr.WriteString(")")
+	return
 }

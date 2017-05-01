@@ -1,26 +1,25 @@
 // Generated from Scratch.g4 by ANTLR 4.7.
 
 package parser
-
 import (
 	"fmt"
 	"unicode"
 )
 
 import "github.com/wxio/antlr4-go"
-
 // Suppress unused import error
 var _ = fmt.Printf
 var _ = unicode.IsLetter
 
+
 var serializedLexerAtn = []uint16{
-	3, 24715, 42794, 33075, 47597, 16764, 15335, 30598, 22884, 2, 6, 19, 8,
-	1, 4, 2, 9, 2, 4, 3, 9, 3, 4, 4, 9, 4, 4, 5, 9, 5, 3, 2, 3, 2, 3, 3, 3,
-	3, 3, 4, 3, 4, 3, 5, 3, 5, 2, 2, 6, 3, 3, 5, 4, 7, 5, 9, 6, 3, 2, 2, 2,
-	18, 2, 3, 3, 2, 2, 2, 2, 5, 3, 2, 2, 2, 2, 7, 3, 2, 2, 2, 2, 9, 3, 2, 2,
-	2, 3, 11, 3, 2, 2, 2, 5, 13, 3, 2, 2, 2, 7, 15, 3, 2, 2, 2, 9, 17, 3, 2,
-	2, 2, 11, 12, 7, 51, 2, 2, 12, 4, 3, 2, 2, 2, 13, 14, 7, 50, 2, 2, 14,
-	6, 3, 2, 2, 2, 15, 16, 7, 122, 2, 2, 16, 8, 3, 2, 2, 2, 17, 18, 7, 123,
+	3, 24715, 42794, 33075, 47597, 16764, 15335, 30598, 22884, 2, 6, 19, 8, 
+	1, 4, 2, 9, 2, 4, 3, 9, 3, 4, 4, 9, 4, 4, 5, 9, 5, 3, 2, 3, 2, 3, 3, 3, 
+	3, 3, 4, 3, 4, 3, 5, 3, 5, 2, 2, 6, 3, 3, 5, 4, 7, 5, 9, 6, 3, 2, 2, 2, 
+	18, 2, 3, 3, 2, 2, 2, 2, 5, 3, 2, 2, 2, 2, 7, 3, 2, 2, 2, 2, 9, 3, 2, 2, 
+	2, 3, 11, 3, 2, 2, 2, 5, 13, 3, 2, 2, 2, 7, 15, 3, 2, 2, 2, 9, 17, 3, 2, 
+	2, 2, 11, 12, 7, 51, 2, 2, 12, 4, 3, 2, 2, 2, 13, 14, 7, 50, 2, 2, 14, 
+	6, 3, 2, 2, 2, 15, 16, 7, 122, 2, 2, 16, 8, 3, 2, 2, 2, 17, 18, 7, 123, 
 	2, 2, 18, 10, 3, 2, 2, 2, 3, 2, 2,
 }
 
@@ -41,6 +40,7 @@ var lexerLiteralNames = []string{
 
 var lexerSymbolicNames []string
 
+
 var lexerRuleNames = []string{
 	"T__0", "T__1", "T__2", "T__3",
 }
@@ -48,7 +48,7 @@ var lexerRuleNames = []string{
 type ScratchLexer struct {
 	*antlr.BaseLexer
 	channelNames []string
-	modeNames    []string
+	modeNames []string
 	// TODO: EOF string
 }
 
@@ -85,3 +85,4 @@ const (
 	ScratchLexerT__2 = 3
 	ScratchLexerT__3 = 4
 )
+

@@ -10,7 +10,7 @@ import (
 	"github.com/wxio/antlr4-go-examples/scratch/parser2"
 )
 
-func TestScratch(t *testing.T) {
+func TestVisit(t *testing.T) {
 	input := antlr.NewInputStream("101x0x01y11111")
 	lexer := parser.NewScratchLexer(input)
 	stream := antlr.NewCommonTokenStream(lexer, 0)
@@ -21,12 +21,12 @@ func TestScratch(t *testing.T) {
 	sexpr := antlr.TreesStringTree(tree, nil, p)
 	fmt.Printf("%s\n", sexpr)
 	v := &ScratchVisitor{}
-	tree.Accept(v)
+	tree.Visit(v)
 	fmt.Printf("%s\n", v.SExpr.String())
 	fmt.Println()
 }
 
-func TestScratch2(t *testing.T) {
+func TestVisit2(t *testing.T) {
 	input := antlr.NewInputStream("101c0x01y11111")
 	lexer := parser2.NewScratch2Lexer(input)
 	stream := antlr.NewCommonTokenStream(lexer, 0)
@@ -37,7 +37,7 @@ func TestScratch2(t *testing.T) {
 	sexpr := antlr.TreesStringTree(tree, nil, p)
 	fmt.Printf("%s\n", sexpr)
 	v := &Scratch2Visitor{super: &ScratchVisitor{}}
-	tree.Accept(v)
+	tree.Visit(v)
 	fmt.Printf("%s\n", v.super.SExpr.String())
 	fmt.Println()
 }

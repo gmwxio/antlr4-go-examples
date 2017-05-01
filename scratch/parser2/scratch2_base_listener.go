@@ -36,7 +36,40 @@ package parser2 // Scratch2
 //  tree.Accept(v)
 // }
 
+//// implemented all listeners methods
 //var _ parser2.Scratch2Listener = &Scratch2Listener{}
+//// implemented specific
+//
+//    
+
+//    
+
+//    
+
+//    
+
+//    
+
+//    
+//
+//var _ parser2.Start1EntryListener = &Scratch2Listener{}
+//var _ parser2.Start1ExitListener = &Scratch2Listener{}
+
+//var _ parser2.A1EntryListener = &Scratch2Listener{}
+//var _ parser2.A1ExitListener = &Scratch2Listener{}
+
+//var _ parser2.B1EntryListener = &Scratch2Listener{}
+//var _ parser2.B1ExitListener = &Scratch2Listener{}
+
+//var _ parser2.B2EntryListener = &Scratch2Listener{}
+//var _ parser2.B2ExitListener = &Scratch2Listener{}
+
+//var _ parser2.C1EntryListener = &Scratch2Listener{}
+//var _ parser2.C1ExitListener = &Scratch2Listener{}
+
+//var _ parser2.DEntryListener = &Scratch2Listener{}
+//var _ parser2.DExitListener = &Scratch2Listener{}
+ 
 
 //type Scratch2Listener struct {
 //}
@@ -74,16 +107,17 @@ package parser2 // Scratch2
 //  }
 // }
 
+
 //// antlr.ParseTreeListener implementation.
 //// All required.
 
-//func (s *Scratch2Listener ) VisitTerminal(node  antlr.TerminalNode) {
+//func (s *Scratch2Listener ) VisitTerminal(node  antlr.TerminalNode) {   
 //}
-//func (s *Scratch2Listener ) VisitErrorNode(node antlr.ErrorNode)    {
+//func (s *Scratch2Listener ) VisitErrorNode(node antlr.ErrorNode)    {   
 //}
-//func (s *Scratch2Listener ) EnterEveryRule(ctx antlr.ParserRuleContext) {
+//func (s *Scratch2Listener ) EnterEveryRule(ctx antlr.ParserRuleContext) {  
 //}
-//func (s *Scratch2Listener ) ExitEveryRule(ctx antlr.ParserRuleContext) {
+//func (s *Scratch2Listener ) ExitEveryRule(ctx antlr.ParserRuleContext) {  
 //}
 
 //// Only implemented as needed.
@@ -112,3 +146,10 @@ package parser2 // Scratch2
 //}
 //func (s *Scratch2Listener) ExitC1(ctx parser2.IC1Context) {
 //}
+
+//func (s *Scratch2Listener) EnterD(ctx parser2.IDContext) {
+//}
+//func (s *Scratch2Listener) ExitD(ctx parser2.IDContext) {
+//}
+
+
