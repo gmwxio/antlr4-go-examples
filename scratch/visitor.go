@@ -19,12 +19,18 @@ type ScratchVisitor struct {
 	SExpr bytes.Buffer
 }
 
+var _ antlr.ParseTreeVisitor = &ScratchVisitor{}
+
+// var _ antlr.AggregateResultVisitor = &ScratchVisitor{}
+var _ antlr.VisitNextCheck = &ScratchVisitor{}
+var _ antlr.VisitRestCheck = &ScratchVisitor{}
+
+// var _ antlr.EnterEveryRuleVisitor = &ScratchVisitor{}
+// var _ antlr.ExitEveryRuleVisitor = &ScratchVisitor{}
+
 // var _ parser.Start1ContextVisitor = &ScratchVisitor{}
 var _ parser.A1ContextVisitor = &ScratchVisitor{}
 var _ parser.B1ContextVisitor = &ScratchVisitor{}
-
-// Can be used to check that all Visit methods are "overriden"
-//var _ parser.ScratchVisitor = &ScratchVisitor{}
 
 // Filter
 func (v *ScratchVisitor) VisitNext(node antlr.Tree, current interface{}) bool {
@@ -47,11 +53,11 @@ func (v *ScratchVisitor) VisitRest(node antlr.RuleNode, current interface{}) boo
 }
 
 // never called because VisitNext filters all TerminalNode types
-func (v *ScratchVisitor) VisitTerminal(node antlr.TerminalNode, args ...interface{}) (result interface{}) {
+func (v *ScratchVisitor) VisitTerminal(node antlr.TerminalNode) {
 	fmt.Printf("terminal %v\n", node.GetText())
 	return
 }
-func (v *ScratchVisitor) VisitErrorNode(node antlr.ErrorNode, args ...interface{}) (result interface{}) {
+func (v *ScratchVisitor) VisitErrorNode(node antlr.ErrorNode) {
 	fmt.Printf("ErrorNode %v\n", node)
 	return
 }

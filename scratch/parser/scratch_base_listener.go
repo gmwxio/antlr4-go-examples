@@ -39,13 +39,6 @@ package parser // Scratch
 //// implemented all listeners methods
 //var _ parser.ScratchListener = &ScratchListener{}
 //// implemented specific
-//
-//    
-
-//    
-
-//    
-//
 //var _ parser.Start1EntryListener = &ScratchListener{}
 //var _ parser.Start1ExitListener = &ScratchListener{}
 
@@ -96,30 +89,20 @@ package parser // Scratch
 //// antlr.ParseTreeListener implementation.
 //// All required.
 
-//func (s *ScratchListener ) VisitTerminal(node  antlr.TerminalNode) {   
-//}
-//func (s *ScratchListener ) VisitErrorNode(node antlr.ErrorNode)    {   
-//}
-//func (s *ScratchListener ) EnterEveryRule(ctx antlr.ParserRuleContext) {  
-//}
-//func (s *ScratchListener ) ExitEveryRule(ctx antlr.ParserRuleContext) {  
-//}
+//func (s *ScratchListener ) VisitTerminal(node  antlr.TerminalNode) {   }
+//func (s *ScratchListener ) VisitErrorNode(node antlr.ErrorNode)    {   }
+//func (s *ScratchListener ) EnterEveryRule(ctx antlr.ParserRuleContext) {  }
+//func (s *ScratchListener ) ExitEveryRule(ctx antlr.ParserRuleContext) {  }
 
 //// Only implemented as needed.
 
-//func (s *ScratchListener) EnterStart1(ctx parser.IStart1Context) {
-//}
-//func (s *ScratchListener) ExitStart1(ctx parser.IStart1Context) {
-//}
+//func (s *ScratchListener) EnterStart1(ctx parser.IStart1Context) {}
+//func (s *ScratchListener) ExitStart1(ctx parser.IStart1Context) {}
 
-//func (s *ScratchListener) EnterA1(ctx parser.IA1Context) {
-//}
-//func (s *ScratchListener) ExitA1(ctx parser.IA1Context) {
-//}
+//func (s *ScratchListener) EnterA1(ctx parser.IA1Context) {}
+//func (s *ScratchListener) ExitA1(ctx parser.IA1Context) {}
 
-//func (s *ScratchListener) EnterB1(ctx parser.IB1Context) {
-//}
-//func (s *ScratchListener) ExitB1(ctx parser.IB1Context) {
-//}
+//func (s *ScratchListener) EnterB1(ctx parser.IB1Context) {}
+//func (s *ScratchListener) ExitB1(ctx parser.IB1Context) {}
 
 

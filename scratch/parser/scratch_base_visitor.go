@@ -10,7 +10,15 @@ package parser // Scratch
 
 //type ScratchVisitor struct {
 //    *antlr.BaseParseTreeVisitor
+//    indent string
 //}
+
+//var _ antlr.ParseTreeVisitor = &&ScratchVisitor{}
+//var _ antlr.AggregateResultVisitor = &&ScratchVisitor{}
+//var _ antlr.VisitNextCheck = &&ScratchVisitor{}
+//var _ antlr.VisitRestCheck = &&ScratchVisitor{}
+//var _ antlr.EnterEveryRuleVisitor = &&ScratchVisitor{}
+//var _ antlr.ExitEveryRuleVisitor = &&ScratchVisitor{}
 
 //var _ parser.Start1ContextVisitor = &ScratchVisitor{}
 //var _ parser.A1ContextVisitor = &ScratchVisitor{}
@@ -30,8 +38,20 @@ package parser // Scratch
 //}
 //func (v *ScratchVisitor) VisitErrorNode(node antlr.ErrorNode) {
 //}
+//func (v *ScratchVisitor) EnterEveryRule(ctx antlr.RuleNode) {
+//    v.indent += " "
+//    fmt.Printf("%s %T\n", v.indent, ctx)
+//}
+//func (v *ScratchVisitor) ExitEveryRule(ctx antlr.RuleNode) {
+//    v.indent = v.indent[:len(v.indent)-1]
+//}
 
-//func (v *ScratchVisitor) VisitStart1(ctx parser.IStart1Context, delegate antlr.ParseTreeVisitor, args ...interface{}) (result interface{}){
+
+//func (v *ScratchVisitor) VisitStart1(ctx parser.IStart1Context, delegate antlr.ParseTreeVisitor, args ...interface{}) (result interface{}){    v.VisitChildren(ctx, delegate);return }
+//func (v *ScratchVisitor) VisitA1(ctx parser.IA1Context, delegate antlr.ParseTreeVisitor, args ...interface{}) (result interface{}){    v.VisitChildren(ctx, delegate);return }
+//func (v *ScratchVisitor) VisitB1(ctx parser.IB1Context, delegate antlr.ParseTreeVisitor, args ...interface{}) (result interface{}){    v.VisitChildren(ctx, delegate);return }
+
+
 //  TODO list rules here
 //  Visit rules manually
 //  eg a : b c* | d;
@@ -47,41 +67,4 @@ package parser // Scratch
 //  // afer children
 //
 //  return result
-//}
-
-//func (v *ScratchVisitor) VisitA1(ctx parser.IA1Context, delegate antlr.ParseTreeVisitor, args ...interface{}) (result interface{}){
-//  TODO list rules here
-//  Visit rules manually
-//  eg a : b c* | d;
-//  if ctx.GetB() != nil {
-//    result1 = ctx.GetB(ctx, delegate, args)
-//    for _, c := range ctx.GetC() {
-//      resultS = c.GetC(ctx, delegate, args)
-//    }
-//  } else { ... }
-//  OR visit all children rules
-//  // before children
-//  v.VisitChildren(ctx, delegate)
-//  // afer children
-//
-//  return result
-//}
-
-//func (v *ScratchVisitor) VisitB1(ctx parser.IB1Context, delegate antlr.ParseTreeVisitor, args ...interface{}) (result interface{}){
-//  TODO list rules here
-//  Visit rules manually
-//  eg a : b c* | d;
-//  if ctx.GetB() != nil {
-//    result1 = ctx.GetB(ctx, delegate, args)
-//    for _, c := range ctx.GetC() {
-//      resultS = c.GetC(ctx, delegate, args)
-//    }
-//  } else { ... }
-//  OR visit all children rules
-//  // before children
-//  v.VisitChildren(ctx, delegate)
-//  // afer children
-//
-//  return result
-//}
 
